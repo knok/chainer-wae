@@ -121,8 +121,6 @@ class WAE(chainer.Chain):
         bt_norm_qz = F.broadcast_to(norm_qz.T, (max_axis, max_axis))
         distance_qz = b_norm_qz + bt_norm_qz - 2. * dotprods_qz
 
-        #import pdb; pdb.set_trace()
-        
         dotprods = F.matmul(qz, pz, transb=True)
         distances = b_norm_qz + bt_norm_pz - 2. * dotprods
 

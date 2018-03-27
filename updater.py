@@ -24,8 +24,8 @@ class PretrainUpdater(chainer.training.StandardUpdater):
         sample_pz = batch_noise
 
         mean_pz = F.mean(sample_pz, axis=0, keepdims=True)
-        mean_qz = F.mean(sample_qz.data, axis=0, keepdims=True)
-        mean_loss = F.mean(F.square(mean_pz.data - mean_qz.data))
+        mean_qz = F.mean(sample_qz, axis=0, keepdims=True)
+        mean_loss = F.mean(F.square(mean_pz - mean_qz))
 
         mpz = F.broadcast_to(mean_pz, sample_pz.shape)
         cov_pz = F.matmul((sample_pz - mpz),  (sample_pz - mpz), transa=True)

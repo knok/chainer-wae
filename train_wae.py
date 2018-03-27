@@ -52,8 +52,28 @@ def main():
                                    out=args.out)
     trainer.extend(extensions.LogReport())
     trainer.extend(extensions.ProgressBar(update_interval=10))
+    trainer.extend(extensions.PrintReport(["loss_pre"]),
+                   trigger=(50, 'iteration'))
 
     trainer.run()
+
+    del trainer
+    del pre_updater
+    del pretrain_iter
+    del pre_opt
+
+    max_epoch = 1000
+    train_iter = chainer.iterators.SerialIterator(dataset, args.batchsize)
+    updater_args["iterator"] = {"main": train_iter}
+    main_updater = updater.Updater(**updater_args)
+    trainer = training.Trainer(main_updater, (max_epoch, 'epoch'),
+                               out=args.out)
+    trainer.extend(extensions.LogReport())
+    trainer.extend(extensions.ProgressBar(update_interval=10))
+    trainer.extend(extensions.PrintReport(["loss_recon", "penalty", "wae_obj"]),
+                   trigger=(50, 'iteration'))
+    trainer.run()
+                   
 
 if __name__ == '__main__':
     main()

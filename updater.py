@@ -2,6 +2,7 @@
 #
 
 import chainer
+import chainer.functions as F
 import numpy as np
 
 class PretrainUpdater(chainer.training.StandardUpdater):
@@ -21,23 +22,37 @@ class PretrainUpdater(chainer.training.StandardUpdater):
         batch_noise = chainer.Variable(self.wae.sample_pz(batchsize))
         sample_qz = self.wae.enc(batch_images)
         sample_pz = batch_noise
-        
-        mean_pz = xp.mean(sample_pz, axis=0)
-        mean_qz = xp.mean(sample_qz, axis=0)
-        mean = xp.square(mean_pz - mean_qz)
-        l = mean.shape[0]
-        mean_loss = mean / l
 
-        cov_pz = (sample_pz - mean_pz) * (sample_pz - mean_pz).T
+        mean_pz = xp.mean(sample_pz, axis=0)
+        mean_pz = F.hstack(mean_pz)
+        mean_pz = F.reshape(mean_pz, (1, mean_pz.shape[0]))
+        mean_qz = xp.mean(sample_qz, axis=0)
+        mean_qz = F.hstack(mean_qz)
+        mean_qz = F.reshape(mean_qz, (1, mean_qz.shape[0]))
+        mean_loss = xp.square(mean_pz - mean_qz)
+        x = 1
+        for y in mean_loss.shape:
+            x *= y
+        mean_loss = xp.sum(mean_loss) / x
+        #import pdb; pdb.set_trace()
+
+        mpz = xp.broadcast_to(mean_pz.data, sample_pz.shape)
+        cov_pz = xp.dot((sample_pz - mpz).T,  (sample_pz - mpz))
         cov_pz /= batchsize - 1.
-        cov_qz = (sample_qz - mean_qz) * (sample_qz - mean_qz).T
+        mqz = xp.broadcast_to(mean_qz.data, sample_qz.shape)
+        cov_qz = xp.dot((sample_qz - mqz).T, (sample_qz - mqz))
         cov_qz /= batchsize - 1.
-        conv_loss = xp.mean(xp.square(conv_pz - cov_qz))
+        cov_loss = xp.square(cov_pz - cov_qz)
+        l = 1
+        for x in cov_loss.shape:
+            l += x
+        cov_loss = cov_loss.sum() / x
         loss = mean_loss + cov_loss
 
-        wae.enc.cleargrads()
+        self.wae.enc.cleargrads()
         loss.backward()
         opt.update()
+        chainer.reporter.report({'loss_pre': loss})
 
 class Updater(chainer.training.StandardUpdater):
     def __init__(self, *args, **kwargs):

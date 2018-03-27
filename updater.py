@@ -61,10 +61,11 @@ class Updater(chainer.training.StandardUpdater):
         super().__init__(*args, **kwargs)
 
     def update_core(self):
-        ae_opt = self.get_optimizer('autoencodder')
+        ae_opt = self.get_optimizer('autoencoder')
         xp = self.wae.xp
 
         batch = self.get_iterator('main').next()
+        batch = np.array(batch, dtype=np.float32)
         batchsize = len(batch)
 
         batch_images = chainer.Variable(batch)

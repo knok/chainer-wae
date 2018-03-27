@@ -8,6 +8,8 @@ import chainer
 from chainer import training
 from chainer.training import extension
 from chainer.training import extensions
+import matplotlib
+import matplotlib.pyplot as plt
 
 import wae
 import data
@@ -25,6 +27,44 @@ def get_args():
     p.add_argument('--epoch', '-e', type=int, default=1000)
     args = p.parse_args()
     return args
+
+def save_graph():
+    @training.make_extension(trigger=(100, 'epoch'))
+
+    def _save_graph(trainer):
+        iter = trainer.updater.get_iterator('main')
+        batch = iter.next()
+        bsize = len(batch)
+        if bsize > 10:
+            batch = batch[:10]
+            bsize = 10
+        model = trainer.updater.wae
+        xp = model.xp
+        batch = xp.array(batch)
+        with chainer.using_config('train', False), chainer.using_config('enable_backprop', False):
+            recon = model.dec(model.enc(batch))
+            recon = recon.data
+        def make_himg(img):
+            img = img.transpose(0, 2, 3, 1)
+            img = xp.hstack(img)
+            img = (img + 1.0) / 2
+            img = chainer.cuda.to_cpu(img)
+            return img
+        img1 = make_himg(batch)
+        img2 = make_himg(recon)
+        fig = plt.figure()
+        gs = matplotlib.gridspec.GridSpec(2, 1)
+        for i, (img, title) in enumerate(
+                zip([img1, img2], ["input", "reconstruct"])):
+            plt.subplot(gs[i, 0])
+            ax = plt.imshow(img)
+            ax = plt.title(title)
+        fname = "fig_{.updater.iteration}.png".format(trainer)
+        fname = os.path.join(trainer.out, fname)
+        plt.savefig(fname)
+        plt.close()
+       
+    return _save_graph
 
 def main():
     args = get_args()
@@ -76,6 +116,7 @@ def main():
     trainer.extend(extensions.PrintReport(["loss_recon", "penalty", "wae_obj"]),
                    trigger=(50, 'iteration'))
     trainer.extend(extensions.snapshot(), trigger=(100, 'epoch'))
+    trainer.extend(save_graph())
     trainer.run()
 
     chainer.serializers.save_npz(args.out+ "/wae.npz", model)

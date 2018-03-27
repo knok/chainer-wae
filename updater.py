@@ -5,25 +5,28 @@ import chainer
 import numpy as np
 
 class PretrainUpdater(chainer.training.StandardUpdater):
-    def __init__(*args, **kwargs):
-        self.wae = kwargs.pop['model']
+    def __init__(self, *args, **kwargs):
+        self.wae = kwargs.pop('model')
         self.wae_lambda = 100.
         super().__init__(*args, **kwargs)
 
     def update_core(self):
-        opt = self.get_optmizer('pretrain')
+        opt = self.get_optimizer('pretrain')
         xp = self.wae.xp
 
         batch = self.get_iterator('main').next()
         batchsize = len(batch)
+        batch = np.array(batch)
         batch_images = chainer.Variable(batch)
-        batch_noise = chainer.Variable(wae.sample_pz(batchsize))
+        batch_noise = chainer.Variable(self.wae.sample_pz(batchsize))
         sample_qz = self.wae.enc(batch_images)
         sample_pz = batch_noise
         
         mean_pz = xp.mean(sample_pz, axis=0)
         mean_qz = xp.mean(sample_qz, axis=0)
-        mean_loss = xp.mean(xp.square(mean_pz - mean_qz))
+        mean = xp.square(mean_pz - mean_qz)
+        l = mean.shape[0]
+        mean_loss = mean / l
 
         cov_pz = (sample_pz - mean_pz) * (sample_pz - mean_pz).T
         cov_pz /= batchsize - 1.
@@ -37,13 +40,13 @@ class PretrainUpdater(chainer.training.StandardUpdater):
         opt.update()
 
 class Updater(chainer.training.StandardUpdater):
-    def __init__(*args, **kwargs):
-        self.wae = kwargs.pop['model']
+    def __init__(self, *args, **kwargs):
+        self.wae = kwargs.pop('model')
         self.wae_lambda = 100.
         super().__init__(*args, **kwargs)
 
     def update_core(self):
-        ae_opt = self.get_optmizer('autoencodder')
+        ae_opt = self.get_optimizer('autoencodder')
         xp = self.wae.xp
 
         batch = self.get_iterator('main').next()

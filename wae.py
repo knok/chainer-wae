@@ -52,8 +52,7 @@ class Decoder(chainer.Chain):
             h = F.relu(h)
         h = self.final(h)
         ret = F.tanh(h)
-        return ret, h
-                                                       
+        return ret
             
 class Encoder(chainer.Chain):
     def __init__(self, zdim, units, layers, wscale=0.02, ksize=4):
@@ -102,39 +101,49 @@ class WAE(chainer.Chain):
             self.dec = Decoder(zdim, units, layers, wscale, ksize)
 
     def mmd_penalty(self, qz, pz):
+        xp = self.xp
         sigma2_p = 1. ** 2
         n = len(qz)
         nf = float(n)
         # half_size = (n * n - n) / 2 # for RBF kernel
 
-        norm_pz = np.sum(np.square(pz), axis=1)
-        dotprods_pz = pz * pz.T
-        distance_pz = norms_pz + norms_pz.T - 2. * dotprods_pz
+        norm_pz = F.sum(F.square(pz), axis=1, keepdims=True)
+        dotprods_pz = F.matmul(pz, pz, transb=True)
+        max_axis = norm_pz.shape[0]
+        b_norm_pz = F.broadcast_to(norm_pz, (max_axis, max_axis))
+        bt_norm_pz = F.broadcast_to(norm_pz.T, (max_axis, max_axis))
+        distance_pz = b_norm_pz + bt_norm_pz - 2. * dotprods_pz
 
-        norm_qz = np.sum(np.square(qz), axis=1)
-        dotprods_qz = qz * qz.T
-        distance_qz = norm_qz + norm_qz.T - 2. * dotprods_qz
+        norm_qz = F.sum(F.square(qz), axis=1, keepdims=True)
+        dotprods_qz = F.matmul(qz, qz, transb=True)
+        max_axis = norm_qz.shape[0]
+        b_norm_qz = F.broadcast_to(norm_qz, (max_axis, max_axis))
+        bt_norm_qz = F.broadcast_to(norm_qz.T, (max_axis, max_axis))
+        distance_qz = b_norm_qz + bt_norm_qz - 2. * dotprods_qz
 
-        dotprods = qz * pz.T
-        distances = norm_qz + norm_pz.T - 2. * dotprods
+        #import pdb; pdb.set_trace()
+        
+        dotprods = F.matmul(qz, pz, transb=True)
+        distances = b_norm_qz + bt_norm_pz - 2. * dotprods
 
         # IMQ kernel
         Cbase = 2. * self.zdim * sigma2_p
         stat = 0
         for scale in [.1, .2, .5, 1., 2., 5., 10.]:
-            res1 = C / (C + distances_qz)
+            C = Cbase * scale
+            res1 = C / (C + distance_qz)
             res1 += C / (C + distance_pz)
-            res1 = res1 * (1 - np.eye(n))
-            res1 = res1.sum() / (nf * nf - nf)
+            res1 = res1 * (1 - self.xp.eye(n))
+            res1 = F.sum(res1) / (nf * nf - nf)
             res2 = C / (C + distances)
-            res2 = res2.sum() * 2. / (nf * nf)
+            res2 = F.sum(res2) * 2. / (nf * nf)
             stat += res1 - res2
         return stat
 
     def reconstrution_loss(self, x, y):
         # l2sq: c(x,y) = ||x - y||_2^2
-        loss = np.square(x - y).sum(axis=[1, 2, 3])
-        loss = 0.05 * loss.mean()
+        loss = F.sum(F.square(x - y), axis=(1, 2, 3))
+        loss = 0.05 * F.mean(loss)
         return loss
 
     def sample_pz(self, batchsize):

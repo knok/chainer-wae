@@ -37,7 +37,7 @@ class Decoder(chainer.Chain):
             self.final = L.Deconvolution2D(prev, 3, ksize=ksize,
                                            stride=2, pad=1, initialW=w)
 
-    def predict(self, x):
+    def __call__(self, x):
         bsize = x.shape[0]
         height = self.output_shape[1] // 2 ** self.layers
         width = self.output_shape[2] // 2 ** self.layers
@@ -77,7 +77,7 @@ class Encoder(chainer.Chain):
                 prev = units // scale
             self.linear = L.Linear(None, zdim)
 
-    def predict(self, x):
+    def __call__(self, x):
         h = x
         for i in range(self.layers):
             conv = "conv%d" % i
@@ -149,7 +149,7 @@ if __name__ == '__main__':
     m = WAE(2, 100, 3)
     img = np.zeros((1, 3, 32, 32), dtype=np.float32)
     x = chainer.Variable(img)
-    y = m.enc.predict(x)
-    t = m.dec.predict(y)
+    y = m.enc(x)
+    t = m.dec(y)
     import pdb; pdb.set_trace()
     

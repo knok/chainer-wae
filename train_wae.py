@@ -22,6 +22,7 @@ def get_args():
     p.add_argument('--layers', '-l', type=int, default=3)
     p.add_argument('--batchsize', '-b', type=int, default=32)
     p.add_argument('--gpu', '-g', type=int, default=-1)
+    p.add_argument('--epoch', '-e', type=int, default=1000)
     args = p.parse_args()
     return args
 
@@ -64,7 +65,7 @@ def main():
     del pretrain_iter
     del pre_opt
 
-    max_epoch = 1000
+    max_epoch = args.epoch
     train_iter = chainer.iterators.SerialIterator(dataset, args.batchsize)
     updater_args["iterator"] = {"main": train_iter}
     main_updater = updater.Updater(**updater_args)
@@ -74,8 +75,10 @@ def main():
     trainer.extend(extensions.ProgressBar(update_interval=10))
     trainer.extend(extensions.PrintReport(["loss_recon", "penalty", "wae_obj"]),
                    trigger=(50, 'iteration'))
+    trainer.extend(extensions.snapshot(), trigger=(100, 'epoch'))
     trainer.run()
-                   
+
+    chainer.serializers.save_npz(args.out+ "/wae.npz", model)
 
 if __name__ == '__main__':
     main()

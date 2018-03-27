@@ -141,8 +141,9 @@ class WAE(chainer.Chain):
         # normal distribution
         mean = np.zeros(self.zdim, dtype=np.float32)
         cov = np.identity(self.zdim, dtype=np.float32)
-        noise = np.random.multivariate_normal(
+        noise = np.random.multivariate_normal( # cupy don't have this
             mean, cov, batchsize).astype(np.float32)
+        noise = self.xp.asarray(noise, dtype=self.xp.float32)
         return noise
 
 if __name__ == '__main__':

@@ -28,6 +28,8 @@ def get_args():
 def main():
     args = get_args()
     model = wae.WAE(args.zdim, args.units, args.layers)
+    if args.gpu >= 0:
+        model.to_gpu()
     dataset = data.Data64(args.data)
 
     # opimizer

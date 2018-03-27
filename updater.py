@@ -17,36 +17,23 @@ class PretrainUpdater(chainer.training.StandardUpdater):
 
         batch = self.get_iterator('main').next()
         batchsize = len(batch)
-        batch = np.array(batch)
+        batch = xp.array(batch)
         batch_images = chainer.Variable(batch)
         batch_noise = chainer.Variable(self.wae.sample_pz(batchsize))
         sample_qz = self.wae.enc(batch_images)
         sample_pz = batch_noise
 
-        mean_pz = xp.mean(sample_pz, axis=0)
-        mean_pz = F.hstack(mean_pz)
-        mean_pz = F.reshape(mean_pz, (1, mean_pz.shape[0]))
-        mean_qz = xp.mean(sample_qz, axis=0)
-        mean_qz = F.hstack(mean_qz)
-        mean_qz = F.reshape(mean_qz, (1, mean_qz.shape[0]))
-        mean_loss = xp.square(mean_pz - mean_qz)
-        x = 1
-        for y in mean_loss.shape:
-            x *= y
-        mean_loss = xp.sum(mean_loss) / x
-        #import pdb; pdb.set_trace()
+        mean_pz = F.mean(sample_pz, axis=0, keepdims=True)
+        mean_qz = F.mean(sample_qz.data, axis=0, keepdims=True)
+        mean_loss = F.mean(F.square(mean_pz.data - mean_qz.data))
 
-        mpz = xp.broadcast_to(mean_pz.data, sample_pz.shape)
-        cov_pz = xp.dot((sample_pz - mpz).T,  (sample_pz - mpz))
+        mpz = F.broadcast_to(mean_pz, sample_pz.shape)
+        cov_pz = F.matmul((sample_pz - mpz),  (sample_pz - mpz), transa=True)
         cov_pz /= batchsize - 1.
-        mqz = xp.broadcast_to(mean_qz.data, sample_qz.shape)
-        cov_qz = xp.dot((sample_qz - mqz).T, (sample_qz - mqz))
+        mqz = F.broadcast_to(mean_qz, sample_qz.shape)
+        cov_qz = F.matmul((sample_qz - mqz), (sample_qz - mqz), transa=True)
         cov_qz /= batchsize - 1.
-        cov_loss = xp.square(cov_pz - cov_qz)
-        l = 1
-        for x in cov_loss.shape:
-            l += x
-        cov_loss = cov_loss.sum() / x
+        cov_loss = F.mean(F.square(cov_pz - cov_qz))
         loss = mean_loss + cov_loss
 
         self.wae.enc.cleargrads()
@@ -63,16 +50,17 @@ class Updater(chainer.training.StandardUpdater):
     def update_core(self):
         ae_opt = self.get_optimizer('autoencoder')
         xp = self.wae.xp
+        wae = self.wae
 
         batch = self.get_iterator('main').next()
-        batch = np.array(batch, dtype=np.float32)
+        batch = xp.array(batch, dtype=xp.float32)
         batchsize = len(batch)
 
         batch_images = chainer.Variable(batch)
         batch_noise = chainer.Variable(wae.sample_pz(batchsize))
 
         # calc penalty
-        sample_qz = self.wae.enc(batch_images)
+        sample_qz = wae.enc(batch_images)
         sample_pz = batch_noise
         penalty = wae.mmd_penalty(sample_qz, sample_pz)
 

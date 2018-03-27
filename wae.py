@@ -52,7 +52,7 @@ class Decoder(chainer.Chain):
             h = F.relu(h)
         h = self.final(h)
         ret = F.tanh(h)
-        return ret
+        return ret, h
                                                        
             
 class Encoder(chainer.Chain):
@@ -88,12 +88,54 @@ class Encoder(chainer.Chain):
         res = self.linear(h)
         return res
 
+class WAE(chainer.Chain):
+    def __init__(self, zdim, units, layers, wscale=0.02, ksize=4,
+                 output_shape=(3, 64, 64)):
+        self.zdim = zdim
+        self.units = units
+        self.layers = layers
+        self.wscale = wscale
+        self.ksize = ksize
+        super().__init__()
+        with self.init_scope():
+            self.enc = Encoder(zdim, units, layers, wscale, ksize)
+            self.dec = Decoder(zdim, units, layers, wscale, ksize)
+
+    def mmd_penalty(self, qz, pz):
+        sigma2_p = 1. ** 2
+        n = len(qz)
+        nf = float(n)
+        half_size = (n * n - n) / 2
+
+        norm_pz = np.sum(np.square(pz), axis=1)
+        dotprods_pz = pz * pz.T
+        distance_pz = norms_pz + norms_pz.T - 2. * dotprods_pz
+
+        norm_qz = np.sum(np.square(qz), axis=1)
+        dotprods_qz = qz * qz.T
+        distance_qz = norm_qz + norm_qz.T - 2. * dotprods_qz
+
+        dotprods = qz * pz.T
+        distances = norm_qz + norm_pz.T - 2. * dotprods
+
+        # IMQ kernel
+        Cbase = 2. * self.zdim * sigma2_p
+        stat = 0
+        for scale in [.1, .2, .5, 1., 2., 5., 10.]:
+            res1 = C / (C + distances_qz)
+            res1 += C / (C + distance_pz)
+            res1 = res1 * (1 - np.eye(n))
+            res1 = res1.sum() / (nf * nf - nf)
+            res2 = C / (C + distances)
+            res2 = res2.sum() * 2. / (nf * nf)
+            stat += res1 - res2
+        return stat
+
 if __name__ == '__main__':
-    e = Encoder(2, 100, 3)
+    m = WAE(2, 100, 3)
     img = np.zeros((1, 3, 32, 32), dtype=np.float32)
     x = chainer.Variable(img)
-    y = e.predict(x)
-    d = Decoder(2, 100, 3)
-    t = d.predict(y)
+    y = m.enc.predict(x)
+    t = m.dec.predict(y)
     import pdb; pdb.set_trace()
     

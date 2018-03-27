@@ -31,12 +31,13 @@ def main():
     chainer.serializers.load_npz(args.model, model)
 
     batch_noise = model.sample_pz(10)
-    sample_gen = model.dec(batch_noise)
+    with chainer.using_config('train', False), chainer.using_config('enable_backprop', False):
+        sample_gen = model.dec(batch_noise)
 
     if args.gpu >=0:
         sample_gen = chainer.cuda.to_cpu(sample_gen)
 
-    img = sample_gen[0].data.transpose(0, 2, 3, 1)
+    img = sample_gen.data.transpose(0, 2, 3, 1)
     img = np.hstack(img)
     img = (img + 1.0) / 2
     plt.imshow(img)

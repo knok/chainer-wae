@@ -5,8 +5,9 @@ import os
 import argparse
 import numpy as np
 import chainer
-import chainer.links as L
-import chainer.functions as F
+from chainer import training
+from chainer.training import extension
+from chainer.training import extensions
 
 import wae
 import data
@@ -19,6 +20,8 @@ def get_args():
     p.add_argument('--out', '-o', type=str, default="result")
     p.add_argument('--units', '-u', type=int, default=100)
     p.add_argument('--layers', '-l', type=int, default=3)
+    p.add_argument('--batchsize', '-b', type=int, default=32)
+    p.add_argument('--gpu', '-g', type=int, default=-1)
     args = p.parse_args()
     return args
 
@@ -26,7 +29,31 @@ def main():
     args = get_args()
     model = wae.WAE(args.zdim, args.units, args.layers)
     dataset = data.Data64(args.data)
-    
+
+    # opimizer
+    pre_opt = chainer.optimizers.Adam()
+    pre_opt.setup(model.enc)
+    updater_args = {
+        "device": args.gpu
+    }
+    ae_opt = chainer.optimizers.Adam()
+    ae_opt.setup(model)
+    opts = {}
+    opts["pretrain"] = pre_opt
+    opts["autoencoder"] = ae_opt
+    updater_args["optimizer"] = opts
+    updater_args["model"] = model
+
+    step_max = 200
+    pretrain_iter = chainer.iterators.SerialIterator(dataset, args.batchsize)
+    updater_args["iterator"] = {"main": pretrain_iter}
+    pre_updater = updater.PretrainUpdater(**updater_args)
+    trainer = training.Trainer(pre_updater, (step_max, 'iteration'),
+                                   out=args.out)
+    trainer.extend(extensions.LogReport())
+    trainer.extend(extensions.ProgressBar(update_interval=10))
+
+    trainer.run()
 
 if __name__ == '__main__':
     main()

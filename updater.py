@@ -67,7 +67,7 @@ class Updater(chainer.training.StandardUpdater):
         # calc reconstruct loss
         real = batch_images
         reconstr = wae.dec(wae.enc(batch_images))
-        loss_reconstruct = wae.reconstruction_loss(real, reconstr)
+        loss_reconstruct = wae.reconstrution_loss(real, reconstr)
 
         # calc objective
         wae_objective = loss_reconstruct + \

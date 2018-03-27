@@ -105,7 +105,7 @@ class WAE(chainer.Chain):
         sigma2_p = 1. ** 2
         n = len(qz)
         nf = float(n)
-        half_size = (n * n - n) / 2
+        # half_size = (n * n - n) / 2 # for RBF kernel
 
         norm_pz = np.sum(np.square(pz), axis=1)
         dotprods_pz = pz * pz.T
@@ -130,6 +130,20 @@ class WAE(chainer.Chain):
             res2 = res2.sum() * 2. / (nf * nf)
             stat += res1 - res2
         return stat
+
+    def reconstrution_loss(self, x, y):
+        # l2sq: c(x,y) = ||x - y||_2^2
+        loss = np.square(x - y).sum(axis=[1, 2, 3])
+        loss = 0.05 * loss.mean()
+        return loss
+
+    def sample_pz(self, batchsize):
+        # normal distribution
+        mean = np.zeros(self.zdim, dtype=np.float32)
+        cov = np.identity(self.zdim, dtype=np.float32)
+        noise = np.random.multivariate_normal(
+            mean, cov, batchsize).astype(np.float32)
+        return noise
 
 if __name__ == '__main__':
     m = WAE(2, 100, 3)

@@ -49,7 +49,41 @@ function stopTimer() {
     document.getElementById("inference").style.disabled = false;
 };
 
+// ref: https://codepen.io/utano320/pen/XXpeav
+var canv;
+var ctx;
+var cw = 400;
+var ch = 400;
+var mouseX;
+var mouseY;
+
+function init_canv() {
+    canv = document.getElementById('axisCanvas');
+    canv.width = cw;
+    canv.height = cw;
+    ctx = canv.getContext('2d');
+    canv.onclick = function(e) {
+	ctx.clearRect(0, 0, cw, ch);
+	var rect = e.target.getBoundingClientRect();
+	mouseX = e.clientX - Math.floor(rect.left) - 2;
+	mouseY = e.clientY - Math.floor(rect.top) - 2;
+	
+	ctx.beginPath();
+	ctx.arc(mouseX, mouseY, 5, 0, Math.PI * 2, false);
+	ctx.fill();
+
+	var z1 = (mouseX - cw/2) / (cw /2) * 2.5;
+	var z2 = (mouseY - ch/2) / (ch /2) * 2.5;
+
+	document.getElementById("val_z1").innerHTML = z1;
+	document.getElementById("val_z2").innerHTML = z2;
+
+	start();
+    };
+};
+
 window.onload = function() {
+    init_canv();
     model = WebDNN.load("../webdnn", {
 	progressCallback: callback_progressbar,
 	backendOrder: ["webassembly"]}).then(function (r) {

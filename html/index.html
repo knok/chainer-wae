@@ -3,6 +3,7 @@
 <html>
     <head>
 	<title>Wasserstein Auto-Encoder</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 	<link rel="stylesheet" type="text/css" href="index.css">
 	<script type="text/javascript" src="./webdnn.js"></script>
 	<script type="text/javascript" src="./wae.js"></script>
@@ -15,6 +16,11 @@
 		<div class="progress-bar"></div>
 	    </div>
 	</div>
+	<canvas id="output" width="64" height="64"></canvas>
+	<button id="inference" type="button" name="btn" onClick="start()">
+	    output
+	</button>
+	<br>
 	<input type="range" name="z1" min="-2.5" max="2.5" step="0.01" value="0.0" onchange="changeValuez1(this.value)">
 	<span id="val_z1">0.0</span>
 	<script type="text/javascript">
@@ -34,14 +40,28 @@
 	    <canvas id="axisCanvas"></canvas>
 	    <div>latent space</div>
 	</div>
-	<br>
-	<canvas id="output" width="64" height="64"></canvas>
-	<button id="inference" type="button" name="btn" onClick="start()">
-	    output
-	</button>
 	<script src="progress.js"></script>
 	<div id="calc">running inference
 	    <div id="sec"></div>
+	</div>
+	<div>
+	    <ul>
+		<li><a href="https://github.com/knok/chainer-wae">
+		source code: https://github.com/knok/chainer-wae</a>
+		</li>
+		<li><a href="https://arxiv.org/abs/1711.01558">
+		    Wasserstein Auto-Encoders(WAE), proposed
+		    by  Tolstikhin, Bousquet, Gelly, Schoelkopf (2017).</a>
+		</li>
+		<li>
+		    <a href="https://qiita.com/knok/items/ed6e829cf35aeae2d68b">
+			Qiita article (Japanese) WAE-MMDをChainerで実装</a>
+		</li>
+		<li>
+		    <a href="https://qiita.com/knok/items/c88ba3fa6f0384c1403c">
+			Qiita article (Japanese) フレンズ画像を生成させてみたい - Wasserstein AutoEncoder</a>
+		</li>
+	    </ul>
 	</div>
     </body>
 </html>

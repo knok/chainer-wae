@@ -103,8 +103,8 @@ function start() {
     vec[0] = parseFloat(z1.innerText);
     vec[1] = parseFloat(z2.innerText);
     console.log("runner called");
-    display_inference();
-    startTimer();
+    // display_inference();
+    // startTimer();
     var x = runner.getInputViews()[0];
     var y = runner.getOutputViews()[0];
     x.set(vec);
@@ -126,7 +126,7 @@ function start() {
 	    color: WebDNN.Image.Color.RGB,
 	    order: WebDNN.Image.Order.CHW
 	});
-	stopTimer();
-	hide_inference();
+	// stopTimer();
+	// hide_inference();
     });
 }

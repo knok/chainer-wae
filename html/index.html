@@ -1,0 +1,42 @@
+<!-- -*- coding: utf-8 -*- -->
+<!DOCTYPE>
+<html>
+    <head>
+	<title>Wasserstein Auto-Encoder</title>
+	<link rel="stylesheet" type="text/css" href="index.css">
+	<script type="text/javascript" src="./webdnn.js"></script>
+	<script type="text/javascript" src="./wae.js"></script>
+    </head>
+    <body>
+	<h1>Wasserstein Auto-Encoder</h1>
+	<div class="app">
+	    <p id="status">Loading model...</p>
+	    <div id="prog-bar" class="progress">
+		<div class="progress-bar"></div>
+	    </div>
+	</div>
+	<input type="range" name="z1" min="-5.0" max="5.0" step="0.01" value="0.0" onchange="changeValuez1(this.value)">
+	<span id="val_z1">0.0</span>
+	<script type="text/javascript">
+	 function changeValuez1(value) {
+	     document.getElementById("val_z1").innerHTML = value;
+	 }
+	</script>
+	<br>
+	<input type="range" name="z2" min="-5.0" max="5.0" step="0.01" value="0.0" onchange="changeValuez2(this.value)">
+	<span id="val_z2">0.0</span>
+	<script type="text/javascript">
+	 function changeValuez2(value) {
+	     document.getElementById("val_z2").innerHTML = value;
+	 }
+	</script>
+	<canvas id="output" width="64" height="64"></canvas>
+	<button id="inference" type="button" name="btn" onClick="start()">
+	    output
+	</button>
+	<script src="progress.js"></script>
+	<div id="calc">running inference
+	    <div id="sec"></div>
+	</div>
+    </body>
+</html>

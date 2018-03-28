@@ -9,6 +9,7 @@ Almost code is based on [TensorFlow implementation](https://github.com/tolstikhi
 * determistic behavor
 * encoder-decoder is based on dcgan only
 * using MMD with IMQ kernel
+* no lamda decay
 
 # how to use
 
@@ -23,3 +24,7 @@ $ python train_wae.py --data path-to-images -g 0
 ```
 $ python gen.py --model result/wae.npz
 ```
+
+## qiita article (Japanese)
+
+* [WAE-MMDをChainerで実装](https://qiita.com/knok/items/ed6e829cf35aeae2d68b)

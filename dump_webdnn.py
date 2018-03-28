@@ -30,7 +30,7 @@ def main():
         x = chainer.Variable(input)
         y = model.dec(x)
     graph = ChainerConverter().convert([x], [y])
-    exec_info = generate_descriptor("webgpu", graph)
+    exec_info = generate_descriptor("webgl", graph)
     exec_info.save(args.out)
 
 if __name__ == '__main__':

@@ -25,6 +25,7 @@ def get_args():
     p.add_argument('--batchsize', '-b', type=int, default=32)
     p.add_argument('--gpu', '-g', type=int, default=-1)
     p.add_argument('--epoch', '-e', type=int, default=1000)
+    p.add_argument('--resume', '-r', type=str, default=None)
     args = p.parse_args()
     return args
 
@@ -87,23 +88,24 @@ def main():
     updater_args["optimizer"] = opts
     updater_args["model"] = model
 
-    step_max = 200
-    pretrain_iter = chainer.iterators.SerialIterator(dataset, args.batchsize)
-    updater_args["iterator"] = {"main": pretrain_iter}
-    pre_updater = updater.PretrainUpdater(**updater_args)
-    trainer = training.Trainer(pre_updater, (step_max, 'iteration'),
-                                   out=args.out)
-    trainer.extend(extensions.LogReport())
-    trainer.extend(extensions.ProgressBar(update_interval=10))
-    trainer.extend(extensions.PrintReport(["loss_pre"]),
-                   trigger=(50, 'iteration'))
+    if args.resume is False:
+        step_max = 200
+        pretrain_iter = chainer.iterators.SerialIterator(dataset, args.batchsize)
+        updater_args["iterator"] = {"main": pretrain_iter}
+        pre_updater = updater.PretrainUpdater(**updater_args)
+        trainer = training.Trainer(pre_updater, (step_max, 'iteration'),
+                                       out=args.out)
+        trainer.extend(extensions.LogReport())
+        trainer.extend(extensions.ProgressBar(update_interval=10))
+        trainer.extend(extensions.PrintReport(["loss_pre"]),
+                       trigger=(50, 'iteration'))
 
-    trainer.run()
+        trainer.run()
 
-    del trainer
-    del pre_updater
-    del pretrain_iter
-    del pre_opt
+        del trainer
+        del pre_updater
+        del pretrain_iter
+        del pre_opt
 
     max_epoch = args.epoch
     train_iter = chainer.iterators.SerialIterator(dataset, args.batchsize)
@@ -117,6 +119,9 @@ def main():
                    trigger=(50, 'iteration'))
     trainer.extend(extensions.snapshot(), trigger=(100, 'epoch'))
     trainer.extend(save_graph())
+
+    if not args.resume is False:
+        chainer.serializers.load_npz(args.resume, trainer)
     trainer.run()
 
     chainer.serializers.save_npz(args.out+ "/wae.npz", model)

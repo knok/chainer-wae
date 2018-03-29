@@ -37,19 +37,25 @@ def main():
                                                  repeat=False, shuffle=False)
     imgs = []
     vectors = []
+    gen_imgs = []
     with chainer.using_config('train', False):
         for d in data_iter:
             d = np.array(d)
             imgs.append(d)
             x = chainer.Variable(d)
             sample_vec = model.enc(d)
+            generated = model.dec(sample_vec)
             if args.gpu >=0:
                 sample_vec = chainer.cuda.to_cpu(sample_vec)
+                generated = chainer.cuda.to_cpu(generated)
             vectors.append(sample_vec.data)
+            gen_imgs.append(generated.data)
 
     imgs = np.vstack(imgs).transpose(0, 2, 3, 1)
     imgs = imgs * 0.5 + 0.5
     z = np.vstack(vectors)
+    gen_imgs = np.vstack(gen_imgs).transpose(0, 2, 3, 1)
+    gen_imgs = gen_imgs * 0.5 + 0.5
 
     zz = []
     z_idx = []
@@ -60,6 +66,7 @@ def main():
             z_idx.append(i)
     zz = np.array(zz)
     z_imgs = imgs[z_idx]
+    gz_imgs = gen_imgs[z_idx]
     l = z_imgs.shape[0]
     cols = 8
     m = (cols - l % cols)
@@ -68,14 +75,22 @@ def main():
     z_imgs = np.vstack([z_imgs, filler])
     zi = np.concatenate(np.split(z_imgs, cols), axis=2)
     zi = np.concatenate(zi, axis=0)
+    gz_imgs = np.vstack([gz_imgs, filler])
+    gzi = np.concatenate(np.split(gz_imgs, cols), axis=2)
+    gzi = np.concatenate(gzi, axis=0)
     #import pdb; pdb.set_trace()
 
-    gs = matplotlib.gridspec.GridSpec(2, 1)
-    ax = plt.subplot(gs[0, 0])
+    gs = matplotlib.gridspec.GridSpec(2, 2)
+    ax = plt.subplot(gs[:, 0])
+    plt.title("latent space")
     plt.scatter(z[:, 0], z[:, 1])
     plt.scatter(zz[:, 0], zz[:, 1], color="red")
-    ax = plt.subplot(gs[1, 0])
+    ax = plt.subplot(gs[0, 1])
+    plt.title("input images")
     plt.imshow(zi)
+    ax = plt.subplot(gs[1, 1])
+    plt.title("generated images")
+    plt.imshow(gzi)
     plt.show()
     plt.close()
     
